@@ -44,6 +44,7 @@ mod spotify;
 mod tray;
 mod update;
 mod voice;
+mod visualizer;
 #[cfg(windows)]
 mod webview_drop;
 mod webview_memory;
@@ -1025,6 +1026,7 @@ pub fn run() {
             spotify::spotify_control,
             spotify::spotify_open,
             spotify::spotify_installed,
+            visualizer::music_visualizer_set_active,
             whatsapp::whatsapp_island,
             whatsapp::whatsapp_open,
             whatsapp::whatsapp_close,

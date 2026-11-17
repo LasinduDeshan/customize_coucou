@@ -9,6 +9,8 @@ import { pillDefinition } from "../core/pills";
 import { SPOTIFY_ID, Spotify, isAd, type SpotifyState } from "../core/spotify";
 import { State } from "../core/state";
 import { t } from "../i18n/i18n";
+import { MusicVisualizer } from "../core/visualizer";
+import { closedIsland } from "../core/closed";
 
 export interface SpotifyHost {
   /** Compact island from hidden, no peek sound. */
@@ -24,6 +26,7 @@ export function registerSpotifyHandlers(island: SpotifyHost) {
   State.subscribe(() => {
     syncPillName();
     refreshWhenShown();
+    syncVisualizer();
   });
 }
 
@@ -55,4 +58,12 @@ function refreshWhenShown() {
   const now = State.mode === "expanded" && State.view === "overview" && State.focusTask?.id === SPOTIFY_ID;
   if (now && !shown) void Bridge.spotifyRefresh();
   shown = now;
+}
+
+function syncVisualizer() {
+  const isPlaying = Spotify.state.playing;
+  const isClosedMusic = State.mode === "hidden" && closedIsland(State.settings.closedIsland) === "music";
+  const isOpenMusic = State.mode === "expanded" && State.view === "overview" && State.focusTask?.id === SPOTIFY_ID;
+  const shouldBeActive = isPlaying && !State.paused && (isClosedMusic || isOpenMusic);
+  MusicVisualizer.setActive(shouldBeActive);
 }

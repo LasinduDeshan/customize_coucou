@@ -479,6 +479,8 @@ export const Bridge = {
   spotifyOpen: () => call<boolean>("spotify_open"),
   /** Whether there is a Spotify to launch (Settings). */
   spotifyInstalled: () => call<boolean>("spotify_installed"),
+  /** Starts or stops the real-time WASAPI loopback audio visualizer. */
+  musicVisualizerSetActive: (active: boolean) => call<void>("music_visualizer_set_active", { active }),
 
   // ── WhatsApp (src-tauri/src/whatsapp) ─────────────────────────────────────
   /** The island's copy, asked once at start (then the "whatsapp" event). Island only. */

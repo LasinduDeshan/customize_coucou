@@ -37,6 +37,7 @@ import type { ViewCommand } from "./shortcuts";
 import { DRAG_THRESHOLD } from "../mochi/desktop-logic";
 import { Updates } from "./update";
 import { UPDATE_BLUE, showsUpdateHint } from "../whats-new/whats-new";
+import { MusicVisualizer } from "../core/visualizer";
 
 const BOT_OVERHANG = 40;
 const UPDATE_BLUE_RGB = hexToRGB(UPDATE_BLUE);
@@ -77,6 +78,8 @@ export class Island {
   private closedEl!: HTMLElement;
   private closedDot!: HTMLElement;
   private closedText!: HTMLElement;
+  private closedVisualizer!: HTMLElement;
+  private closedVisualizerBars: HTMLElement[] = [];
   private closedKey = "";
   /** Width of the closed island for what it shows now. */
   private closedW = 120;
@@ -326,7 +329,20 @@ export class Island {
     this.wakeStrip = h("div", { id: "wake-strip" });
     this.closedDot = h("span", { class: "dot" });
     this.closedText = h("span", { class: "text" });
-    this.closedEl = h("div", { id: "island-closed" }, this.closedDot, this.closedText);
+    this.closedVisualizerBars = [h("i"), h("i"), h("i"), h("i")];
+    this.closedVisualizer = h("span", { class: "closed-visualizer" }, ...this.closedVisualizerBars);
+    this.closedVisualizer.style.display = "none";
+    this.closedEl = h("div", { id: "island-closed" }, this.closedDot, this.closedVisualizer, this.closedText);
+
+    MusicVisualizer.subscribe(() => {
+      if (this.closedVisualizer.style.display === "flex") {
+        const [b0, b1, b2, b3] = MusicVisualizer.closedBands;
+        const heights = [b0, b1, b2, b3].map((val) => Math.max(3, Math.min(12, Math.round(3 + val * 9))));
+        for (let i = 0; i < 4; i++) {
+          this.closedVisualizerBars[i].style.height = `${heights[i]}px`;
+        }
+      }
+    });
     this.botGlow = h("div", { id: "bot-glow" });
     this.botCanvas = h("canvas", { id: "bot-canvas" });
     this.greetingCanvas = h("canvas", { id: "greeting-canvas" });
@@ -998,14 +1014,16 @@ export class Island {
     const key = content ? `${style}|${content.text}|${content.dot ?? ""}|${content.note}` : style;
     const shown = State.mode === "hidden" && this.closedShows;
     this.closedEl.classList.toggle("on", shown && content != null);
+    const isMusic = content?.note === true;
+    this.closedVisualizer.style.display = isMusic ? "flex" : "none";
     if (key === this.closedKey) return;
     this.closedKey = key;
     this.closedText.textContent = content?.text ?? "";
-    this.closedEl.classList.toggle("note", content?.note === true);
+    this.closedEl.classList.toggle("note", isMusic);
     this.closedDot.style.display = content?.dot ? "" : "none";
     if (content?.dot) this.closedDot.style.background = content.dot;
     // Measured as drawn: the font and the language decide the width.
-    const extras = (content?.dot ? 12 : 0) + (content?.note ? 16 : 0);
+    const extras = (content?.dot ? 12 : 0) + (isMusic ? 18 : 0);
     const w = closedWidth(content ? this.closedText.scrollWidth : 0, extras);
     if (w !== this.closedW) {
       this.closedW = w;

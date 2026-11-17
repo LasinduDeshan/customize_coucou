@@ -18,6 +18,7 @@ import {
 import { createMiniBot } from "../mochi/minibots";
 import { pillDefinition } from "../core/pills";
 import { N_, t } from "../i18n/i18n";
+import { MusicVisualizer, VISUALIZER_BANDS } from "../core/visualizer";
 
 
 function lighter(hex: string, amount: number): string {
@@ -256,6 +257,8 @@ export interface SpotifyCardHost {
 /** SpotifyCardView: now playing, or the idle card (not playing / not installed). */
 export function buildSpotifyCard(): SpotifyCardHost {
   const green = SPOTIFY_GREEN;
+  const el = h("div", { class: "np-root" });
+  let showing: "playing" | "idle" | null = null;
 
   // Now playing: artwork row, progress row, controls row.
   const art = h("div", { class: "np-art" });
@@ -270,6 +273,24 @@ export function buildSpotifyCard(): SpotifyCardHost {
     art,
     h("div", { class: "np-text" }, h("div", { class: "np-title-row" }, dot(green, 6), title), subtitle),
   );
+
+  const visualizerBars: HTMLElement[] = [];
+  for (let i = 0; i < VISUALIZER_BANDS; i++) {
+    visualizerBars.push(h("i", { class: "np-vis-bar" }));
+  }
+  const visualizerEl = h("div", { class: "np-visualizer" }, ...visualizerBars);
+
+  function updateVisualizer(bands: readonly number[]) {
+    if (showing !== "playing" || !el.isConnected) return;
+    const isPlaying = Spotify.state.playing;
+    for (let i = 0; i < VISUALIZER_BANDS; i++) {
+      const level = isPlaying ? (bands[i] ?? 0) : 0;
+      const hPx = Math.max(2, Math.min(14, Math.round(2 + level * 12)));
+      visualizerBars[i].style.height = `${hPx}px`;
+    }
+  }
+
+  MusicVisualizer.subscribe((bands) => updateVisualizer(bands));
 
   let dragFraction: number | null = null;
   const elapsed = h("span", { class: "np-time elapsed" });
@@ -305,7 +326,7 @@ export function buildSpotifyCard(): SpotifyCardHost {
     h("div", { class: "grow" }),
     volumeBox,
   );
-  const playingEl = h("div", { class: "np-card" }, head, progressRow, controls);
+  const playingEl = h("div", { class: "np-card" }, head, visualizerEl, progressRow, controls);
 
   // Idle: the same layout as the other idle cards.
   const idleDot = dot("#22C55E", 5);
@@ -319,8 +340,6 @@ export function buildSpotifyCard(): SpotifyCardHost {
     h("div", { class: "int-actions" }, idleAction),
   );
 
-  const el = h("div", { class: "np-root" });
-  let showing: "playing" | "idle" | null = null;
   let shownTrack: SpotifyTrack | null = null;
   let playIcon: boolean | null = null;
   let volIconLevel = -1;
